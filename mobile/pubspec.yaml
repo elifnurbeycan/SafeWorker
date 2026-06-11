@@ -1,0 +1,31 @@
+name: safeworker_mobile
+description: "SafeWorker worker mobile MVP."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  battery_plus: ^6.2.3
+  connectivity_plus: ^6.1.4
+  cupertino_icons: ^1.0.8
+  geolocator: ^14.0.2
+  http: ^1.2.2
+  intl: ^0.20.2
+  sensors_plus: ^6.1.2
+  shared_preferences: ^2.3.3
+  mobile_scanner: ^5.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
