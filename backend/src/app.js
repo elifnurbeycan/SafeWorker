@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const swaggerUi = require('swagger-ui-express');
 
 const authRoutes = require('./routes/auth.routes');
+const userRoutes = require('./routes/user.routes');
 const sensorRoutes = require('./routes/sensor.routes');
 const alarmRoutes = require('./routes/alarm.routes');
 const deviceRoutes = require('./routes/device.routes');
@@ -41,6 +42,7 @@ app.get('/api-docs.json', (req, res) => {
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/sensor-data', sensorRoutes);
 app.use('/api/alarms', alarmRoutes);
 app.use('/api/devices', deviceRoutes);

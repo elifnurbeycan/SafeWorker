@@ -7,7 +7,8 @@ const navItems = [
   { to: '/live-workers', label: 'Canlı Çalışanlar' },
   { to: '/alarms', label: 'Alarmlar' },
   { to: '/risk-chart', label: 'Risk Grafiği' },
-  { to: '/zones', label: 'Bölgeler' }
+  { to: '/zones', label: 'Bölgeler' },
+  { to: '/users', label: 'Kullanıcılar' }
 ];
 
 const Navbar = () => {

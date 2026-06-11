@@ -8,6 +8,7 @@ import LiveWorkersPage from './pages/LiveWorkersPage.jsx';
 import AlarmsPage from './pages/AlarmsPage.jsx';
 import RiskChartPage from './pages/RiskChartPage.jsx';
 import ZonesPage from './pages/ZonesPage.jsx';
+import UsersPage from './pages/UsersPage.jsx';
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
         <Route path="alarms" element={<AlarmsPage />} />
         <Route path="risk-chart" element={<RiskChartPage />} />
         <Route path="zones" element={<ZonesPage />} />
+        <Route path="users" element={<UsersPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
