@@ -15,6 +15,7 @@ import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/sensor_service.dart';
 import '../services/shift_service.dart';
+import '../services/zone_service.dart';
 import '../storage/local_storage.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/status_card.dart';
@@ -33,10 +34,16 @@ class WorkerHomeScreen extends StatefulWidget {
 class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   final _deviceController = TextEditingController();
   final _shiftService = ShiftService();
+  final _zoneService = ZoneService();
   UserModel? _user;
   String? _shiftId;
   String? _message;
   bool _isBusy = false;
+
+  List<LocalDangerZone> _dangerZones = [];
+  bool _dangerZonesInitialized = false;
+  String? _currentActiveZoneQr;
+  bool _isMockGpsActive = false;
 
   // Background Sensor and Tracking Deactivation
   final _sensorService = SensorService();
@@ -306,7 +313,102 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     }
   }
 
+  void _initializeDangerZones(double baseLat, double baseLng) {
+    setState(() {
+      _dangerZones = [
+        LocalDangerZone(
+          name: 'Kimyasal Depo',
+          qrCode: 'ZONE-CHEM-001',
+          riskLevel: 'high',
+          center: LatLng(baseLat + 0.0003, baseLng + 0.0003),
+          radius: 20,
+          color: const Color(0xFFDC2626),
+        ),
+        LocalDangerZone(
+          name: 'Forklift Alanı',
+          qrCode: 'ZONE-FORK-001',
+          riskLevel: 'medium',
+          center: LatLng(baseLat - 0.0003, baseLng + 0.0003),
+          radius: 20,
+          color: const Color(0xFFD97706),
+        ),
+        LocalDangerZone(
+          name: 'Bakım Alanı',
+          qrCode: 'ZONE-MAINT-001',
+          riskLevel: 'high',
+          center: LatLng(baseLat + 0.0003, baseLng - 0.0003),
+          radius: 20,
+          color: const Color(0xFF2563EB),
+        ),
+      ];
+      _dangerZonesInitialized = true;
+    });
+  }
+
+  Future<void> _checkGeofences(double lat, double lng) async {
+    if (_dangerZones.isEmpty) return;
+
+    String? enteredZoneQr;
+
+    for (final zone in _dangerZones) {
+      final distance = Geolocator.distanceBetween(
+        lat,
+        lng,
+        zone.center.latitude,
+        zone.center.longitude,
+      );
+
+      if (distance <= zone.radius) {
+        enteredZoneQr = zone.qrCode;
+        break;
+      }
+    }
+
+    if (enteredZoneQr != _currentActiveZoneQr) {
+      final oldZoneQr = _currentActiveZoneQr;
+      setState(() {
+        _currentActiveZoneQr = enteredZoneQr;
+      });
+
+      if (enteredZoneQr != null) {
+        final zone = _dangerZones.firstWhere((z) => z.qrCode == enteredZoneQr);
+        _showMessage('GPS: ${zone.name} bölgesine girildi! API kaydı yapılıyor...');
+
+        try {
+          final workerId = await LocalStorage.getUserId();
+          if (workerId != null && workerId.isNotEmpty) {
+            final response = await _zoneService.scanZone(
+              workerId: workerId,
+              qrCode: enteredZoneQr,
+            );
+            final data = response.data as Map<String, dynamic>;
+            final alarm = data['alarm'] as Map<String, dynamic>?;
+
+            if (alarm != null) {
+              _showMessage('${zone.name} girişi kaydedildi! Alarm: ${alarm['message']}');
+            } else {
+              _showMessage('${zone.name} girişi kaydedildi.');
+            }
+          }
+        } catch (e) {
+          print('GPS zone entry api error: $e');
+        }
+      } else {
+        if (oldZoneQr != null) {
+          final zone = _dangerZones.firstWhere((z) => z.qrCode == oldZoneQr);
+          _showMessage('GPS: ${zone.name} bölgesinden çıkıldı.');
+        }
+      }
+    }
+  }
+
   Future<void> _refreshLocation() async {
+    if (_isMockGpsActive) {
+      if (_latitude != null && _longitude != null) {
+        _checkGeofences(_latitude!, _longitude!);
+      }
+      return;
+    }
     if (_isLocationLoading) return;
 
     if (mounted) {
@@ -364,7 +466,13 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         _locationAccuracy = position.accuracy;
         _locationStatus = 'Konum alındı';
         _isLocationLoading = false;
+
+        if (!_dangerZonesInitialized) {
+          _initializeDangerZones(position.latitude, position.longitude);
+        }
       });
+
+      _checkGeofences(position.latitude, position.longitude);
     } catch (_) {
       if (!mounted) return;
 
@@ -609,17 +717,29 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     ),
                   ),
                   SizedBox(
-                    height: 180,
+                    height: 240,
                     child: _latitude != null && _longitude != null
                         ? FlutterMap(
                             options: MapOptions(
                               initialCenter: LatLng(_latitude!, _longitude!),
-                              initialZoom: 15.0,
+                              initialZoom: 16.5,
                             ),
                             children: [
                               TileLayer(
                                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                                 userAgentPackageName: 'com.example.safeworker_mobile',
+                              ),
+                              CircleLayer(
+                                circles: _dangerZones.map((zone) {
+                                  return CircleMarker(
+                                    point: zone.center,
+                                    color: zone.color.withValues(alpha: 0.25),
+                                    borderColor: zone.color,
+                                    borderStrokeWidth: 2,
+                                    useRadiusInMeter: true,
+                                    radius: zone.radius,
+                                  );
+                                }).toList(),
                               ),
                               MarkerLayer(
                                 markers: [
@@ -633,19 +753,87 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                       size: 36,
                                     ),
                                   ),
+                                  ..._dangerZones.map((zone) {
+                                    IconData iconData;
+                                    if (zone.qrCode == 'ZONE-CHEM-001') {
+                                      iconData = Icons.science_outlined;
+                                    } else if (zone.qrCode == 'ZONE-FORK-001') {
+                                      iconData = Icons.warehouse_outlined;
+                                    } else {
+                                      iconData = Icons.construction_outlined;
+                                    }
+
+                                    return Marker(
+                                      point: zone.center,
+                                      width: 90,
+                                      height: 60,
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: zone.color, width: 1.5),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.15),
+                                                  blurRadius: 4,
+                                                  offset: const Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: Text(
+                                              zone.name,
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w900,
+                                                color: zone.color,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                          Icon(
+                                            iconData,
+                                            color: zone.color,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
                                 ],
                               ),
                             ],
                           )
-                        : const Center(
+                        : Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                CircularProgressIndicator(color: Color(0xFF0F766E)),
-                                SizedBox(height: 8),
-                                Text(
+                                const CircularProgressIndicator(color: Color(0xFF0F766E)),
+                                const SizedBox(height: 8),
+                                const Text(
                                   'GPS konumu alınıyor...',
                                   style: TextStyle(color: Color(0xFF64748B)),
+                                ),
+                                const SizedBox(height: 12),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.map_outlined),
+                                  label: const Text('Demo Konumu Kullan (Kadıköy)'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: const Color(0xFF0F766E),
+                                  ),
+                                  onPressed: () {
+                                    setState(() {
+                                      _isMockGpsActive = true;
+                                      _latitude = 40.9901;
+                                      _longitude = 29.0289;
+                                      _locationStatus = 'Simüle Konum (Kadıköy)';
+                                      _initializeDangerZones(40.9901, 29.0289);
+                                    });
+                                    _checkGeofences(40.9901, 29.0289);
+                                  },
                                 ),
                               ],
                             ),
@@ -654,6 +842,105 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+
+            // GPS Simülasyonu (Test Paneli)
+            if (_dangerZones.isNotEmpty)
+              Card(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.gps_fixed, color: Color(0xFF0F766E), size: 20),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'GPS Simülasyonu (Test Paneli)',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          const Spacer(),
+                          if (_isMockGpsActive)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'SİMÜLE',
+                                style: TextStyle(
+                                  color: Color(0xFFD97706),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: _isMockGpsActive ? const Color(0xFF475569) : Colors.grey[200],
+                              foregroundColor: _isMockGpsActive ? Colors.white : Colors.grey[600],
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.gps_not_fixed, size: 14),
+                            onPressed: _isMockGpsActive
+                                ? () {
+                                    setState(() {
+                                      _isMockGpsActive = false;
+                                    });
+                                    _refreshLocation();
+                                  }
+                                : null,
+                            label: const Text('Gerçek GPS', style: TextStyle(fontSize: 11)),
+                          ),
+                          ..._dangerZones.map((zone) {
+                            final isCurrent = _currentActiveZoneQr == zone.qrCode;
+                            return ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isCurrent ? zone.color : zone.color.withValues(alpha: 0.1),
+                                foregroundColor: isCurrent ? Colors.white : zone.color,
+                                side: BorderSide(color: zone.color, width: 1.2),
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              icon: Icon(
+                                zone.qrCode == 'ZONE-CHEM-001'
+                                    ? Icons.science_outlined
+                                    : zone.qrCode == 'ZONE-FORK-001'
+                                        ? Icons.warehouse_outlined
+                                        : Icons.construction_outlined,
+                                size: 14,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _isMockGpsActive = true;
+                                  _latitude = zone.center.latitude;
+                                  _longitude = zone.center.longitude;
+                                  _locationStatus = 'Simüle: ${zone.name}';
+                                });
+                                _checkGeofences(zone.center.latitude, zone.center.longitude);
+                              },
+                              label: Text(zone.name, style: const TextStyle(fontSize: 11)),
+                            );
+                          }),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             const SizedBox(height: 12),
 
             if (_message != null)
@@ -746,4 +1033,22 @@ class _NavigationTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class LocalDangerZone {
+  final String name;
+  final String qrCode;
+  final String riskLevel;
+  final LatLng center;
+  final double radius;
+  final Color color;
+
+  LocalDangerZone({
+    required this.name,
+    required this.qrCode,
+    required this.riskLevel,
+    required this.center,
+    required this.radius,
+    required this.color,
+  });
 }

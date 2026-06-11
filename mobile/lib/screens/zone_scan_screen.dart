@@ -149,38 +149,6 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
                 },
               ),
             const SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Manuel QR Kod',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _qrController,
-                      decoration: const InputDecoration(
-                        labelText: 'QR kod',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    PrimaryButton(
-                      label: 'Manuel QR Gönder',
-                      icon: Icons.send,
-                      isLoading: _isSending,
-                      onPressed: () => _sendQr(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
             const Divider(),
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
