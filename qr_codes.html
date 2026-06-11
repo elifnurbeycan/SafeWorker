@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeWorker - Bölge QR Kodları</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nOMdBw30XYtWEC54m60Qup36L5YKye0TR3VC88f/yiYOsP2bTLT8IHUs8CcWUkCipgQC3GsB27Pw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <style>
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f3f4f6;
+      --text-sub: #9ca3af;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 3rem 1.5rem;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      max-width: 600px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.75rem;
+    }
+
+    p.subtitle {
+      color: var(--text-sub);
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+
+    .container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 2rem;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 1.5rem;
+      padding: 2rem;
+      width: 320px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(12px);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card.danger-zone {
+      border-top: 4px solid var(--danger);
+    }
+
+    .card.danger-zone:hover {
+      border-color: var(--danger);
+    }
+
+    .card.warning-zone {
+      border-top: 4px solid var(--warning);
+    }
+
+    .card.warning-zone:hover {
+      border-color: var(--warning);
+    }
+
+    .zone-badge {
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      margin-bottom: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    .danger-zone .zone-badge {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+    }
+
+    .warning-zone .zone-badge {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+    }
+
+    .zone-title {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .zone-code {
+      font-family: monospace;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 0.3rem 0.6rem;
+      border-radius: 0.5rem;
+      font-size: 0.95rem;
+      color: #38bdf8;
+      margin-bottom: 1.5rem;
+    }
+
+    .qr-container {
+      background: white;
+      padding: 1rem;
+      border-radius: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .qr-container img {
+      display: block;
+    }
+
+    footer {
+      margin-top: 4rem;
+      color: var(--text-sub);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SafeWorker Bölge Giriş QR Kodları</h1>
+    <p class="subtitle">Telefonunuzun kamerasıyla bu QR kodları taratarak tehlikeli veya uyarılı bölgelere girişlerinizi simüle edebilir ve test edebilirsiniz.</p>
+  </header>
+
+  <div class="container">
+    <!-- Kimyasal Depo -->
+    <div class="card danger-zone">
+      <span class="zone-badge">Tehlikeli Bölge</span>
+      <h2 class="zone-title">Kimyasal Depo</h2>
+      <div class="zone-code">ZONE-CHEM-001</div>
+      <div class="qr-container" id="qr-chem"></div>
+      <p style="font-size: 0.85rem; color: var(--text-sub);">Yüksek riskli kimyasal maddelerin bulunduğu depolama alanı.</p>
+    </div>
+
+    <!-- Forklift Alanı -->
+    <div class="card warning-zone">
+      <span class="zone-badge">Uyarı Bölgesi</span>
+      <h2 class="zone-title">Forklift Hareket Alanı</h2>
+      <div class="zone-code">ZONE-FORK-001</div>
+      <div class="qr-container" id="qr-fork"></div>
+      <p style="font-size: 0.85rem; color: var(--text-sub);">İş makineleri ve forklift araçlarının aktif çalıştığı koridorlar.</p>
+    </div>
+
+    <!-- Bakım Alanı -->
+    <div class="card warning-zone">
+      <span class="zone-badge">Uyarı Bölgesi</span>
+      <h2 class="zone-title">Bakım & Onarım Alanı</h2>
+      <div class="zone-code">ZONE-MAINT-001</div>
+      <div class="qr-container" id="qr-maint"></div>
+      <p style="font-size: 0.85rem; color: var(--text-sub);">Teknik servis ve ağır sanayi makine bakım atölyesi.</p>
+    </div>
+  </div>
+
+  <footer>
+    SafeWorker MVP &copy; 2026 - Tüm Hakları Saklıdır.
+  </footer>
+
+  <script>
+    // QR kodlarını oluştur
+    new QRCode(document.getElementById("qr-chem"), {
+      text: "ZONE-CHEM-001",
+      width: 180,
+      height: 180,
+      colorDark : "#000000",
+      colorLight : "#ffffff",
+      correctLevel : QRCode.CorrectLevel.H
+    });
+
+    new QRCode(document.getElementById("qr-fork"), {
+      text: "ZONE-FORK-001",
+      width: 180,
+      height: 180,
+      colorDark : "#000000",
+      colorLight : "#ffffff",
+      correctLevel : QRCode.CorrectLevel.H
+    });
+
+    new QRCode(document.getElementById("qr-maint"), {
+      text: "ZONE-MAINT-001",
+      width: 180,
+      height: 180,
+      colorDark : "#000000",
+      colorLight : "#ffffff",
+      correctLevel : QRCode.CorrectLevel.H
+    });
+  </script>
+</body>
+</html>
