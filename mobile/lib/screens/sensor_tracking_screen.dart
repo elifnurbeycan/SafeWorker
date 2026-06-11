@@ -40,7 +40,6 @@ class _SensorTrackingScreenState extends State<SensorTrackingScreen> {
 
   double _lastMovementMagnitude = 0;
   DateTime _lastMovementAt = DateTime.now();
-  DateTime? _lastImmediateTriggerTime;
 
   int _batteryLevel = 80;
   String _networkStatus = 'online';
@@ -59,7 +58,7 @@ class _SensorTrackingScreenState extends State<SensorTrackingScreen> {
     final secondsWithoutMovement =
         DateTime.now().difference(_lastMovementAt).inSeconds;
 
-    return secondsWithoutMovement >= 15;
+    return secondsWithoutMovement >= 30;
   }
 
   @override
@@ -106,8 +105,6 @@ class _SensorTrackingScreenState extends State<SensorTrackingScreen> {
           _accY = event.y;
           _accZ = event.z;
         });
-
-        _checkRealtimeAlarms(event.x, event.y, event.z, _gyroX, _gyroY, _gyroZ);
       }, onError: (_) => _setSensorWarning());
 
       _gyroscopeSubscription = gyroscopeEventStream().listen((event) {
@@ -118,82 +115,9 @@ class _SensorTrackingScreenState extends State<SensorTrackingScreen> {
           _gyroY = event.y;
           _gyroZ = event.z;
         });
-
-        _checkRealtimeAlarms(_accX, _accY, _accZ, event.x, event.y, event.z);
       }, onError: (_) => _setSensorWarning());
     } catch (_) {
       _setSensorWarning();
-    }
-  }
-
-  void _checkRealtimeAlarms(
-    double accX,
-    double accY,
-    double accZ,
-    double gyroX,
-    double gyroY,
-    double gyroZ,
-  ) {
-    final accMag = _calculateMagnitude(accX, accY, accZ);
-    final gyroMag = _calculateMagnitude(gyroX, gyroY, gyroZ);
-
-    final isHardImpact = accMag > 25;
-    final isFallRisk = accMag > 15 && gyroMag > 3.0;
-
-    if (isHardImpact || isFallRisk) {
-      final now = DateTime.now();
-      if (_lastImmediateTriggerTime == null ||
-          now.difference(_lastImmediateTriggerTime!).inSeconds >= 5) {
-        _lastImmediateTriggerTime = now;
-        _sendInstantSensorData(accX, accY, accZ, gyroX, gyroY, gyroZ);
-      }
-    }
-  }
-
-  Future<void> _sendInstantSensorData(
-    double accX,
-    double accY,
-    double accZ,
-    double gyroX,
-    double gyroY,
-    double gyroZ,
-  ) async {
-    try {
-      final workerId = await LocalStorage.getUserId();
-      final deviceId = await LocalStorage.getDeviceId();
-      final shiftId = await LocalStorage.getShiftId();
-
-      if (workerId == null || workerId.isEmpty || deviceId == null || deviceId.isEmpty) {
-        return;
-      }
-
-      await _refreshDeviceStatus();
-      await _refreshLocation();
-
-      final payload = SensorPayload(
-        workerId: workerId,
-        deviceId: deviceId,
-        shiftId: shiftId,
-        timestamp: DateTime.now(),
-        accelerometer: SensorVector(x: accX, y: accY, z: accZ),
-        gyroscope: SensorVector(x: gyroX, y: gyroY, z: gyroZ),
-        batteryLevel: _batteryLevel,
-        networkStatus: _networkStatus,
-        location: _buildLocation(),
-        inactivity: _isInactive,
-      );
-
-      final response = await _sensorService.sendSensorData(payload);
-      final sensorData =
-          (response.data as Map<String, dynamic>)['sensorData']
-              as Map<String, dynamic>?;
-
-      final riskLevel = sensorData?['riskLevel']?.toString() ?? '-';
-      final riskScore = sensorData?['riskScore']?.toString() ?? '-';
-
-      _showMessage('Kritik Olay Algılandı ve Gönderildi! Risk: $riskLevel / $riskScore');
-    } catch (_) {
-      // Silent error or fallback
     }
   }
 
@@ -457,7 +381,7 @@ class _SensorTrackingScreenState extends State<SensorTrackingScreen> {
                     title: 'Son hareket',
                     value: '$secondsWithoutMovement sn',
                     icon: Icons.timer,
-                    color: secondsWithoutMovement >= 15
+                    color: secondsWithoutMovement >= 30
                         ? const Color(0xFFDC2626)
                         : const Color(0xFF0F766E),
                   ),

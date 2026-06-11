@@ -4,7 +4,6 @@ const Device = require('../models/Device');
 const Shift = require('../models/Shift');
 const SensorData = require('../models/SensorData');
 const Alarm = require('../models/Alarm');
-const { ALARM_TYPES } = require('../constants/alarmTypes');
 const { calculateRisk } = require('../services/riskAnalysis.service');
 const { createAlarm } = require('../services/alarm.service');
 const { emitEvent } = require('../services/socket.service');
@@ -184,7 +183,7 @@ const createSensorData = asyncHandler(async (req, res) => {
   const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
   const recentCriticalAlarm = await Alarm.findOne({
     workerId,
-    type: { $in: [ALARM_TYPES.FALL_RISK, ALARM_TYPES.HARD_IMPACT] },
+    type: { $in: ['fall_risk', 'hard_impact'] },
     status: 'active',
     createdAt: { $gte: threeMinutesAgo }
   });
