@@ -1,8 +1,19 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:battery_plus/battery_plus.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong2.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 
 import '../models/api_response.dart';
+import '../models/sensor_payload.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
+import '../services/sensor_service.dart';
 import '../services/shift_service.dart';
 import '../storage/local_storage.dart';
 import '../widgets/primary_button.dart';
@@ -10,7 +21,6 @@ import '../widgets/status_card.dart';
 import 'demo_simulation_screen.dart';
 import 'emergency_screen.dart';
 import 'login_screen.dart';
-import 'sensor_tracking_screen.dart';
 import 'zone_scan_screen.dart';
 
 class WorkerHomeScreen extends StatefulWidget {
@@ -28,6 +38,42 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   String? _message;
   bool _isBusy = false;
 
+  // Background Sensor and Tracking Deactivation
+  final _sensorService = SensorService();
+  final _battery = Battery();
+
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<GyroscopeEvent>? _gyroscopeSubscription;
+  Timer? _autoSendTimer;
+
+  double _accX = 1;
+  double _accY = 2;
+  double _accZ = 3;
+  double _gyroX = 0.1;
+  double _gyroY = 0.2;
+  double _gyroZ = 0.3;
+
+  double _lastMovementMagnitude = 0;
+  DateTime _lastMovementAt = DateTime.now();
+  DateTime? _lastImmediateTriggerTime;
+
+  int _batteryLevel = 80;
+  String _networkStatus = 'online';
+
+  double? _latitude;
+  double? _longitude;
+  double? _locationAccuracy;
+  String _locationStatus = 'Konum alınmadı';
+  bool _isLocationLoading = false;
+  bool _sensorWarningShown = false;
+
+  bool get _isInactive {
+    final secondsWithoutMovement =
+        DateTime.now().difference(_lastMovementAt).inSeconds;
+
+    return secondsWithoutMovement >= 15;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +82,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
 
   @override
   void dispose() {
+    _autoSendTimer?.cancel();
+    _accelerometerSubscription?.cancel();
+    _gyroscopeSubscription?.cancel();
     _deviceController.dispose();
     super.dispose();
   }
@@ -51,10 +100,279 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     });
 
     if (deviceId == null || deviceId.isEmpty) {
-      _fetchDeviceAutomatically();
+      await _fetchDeviceAutomatically();
+    } else {
+      _startSensorStreams();
+      _startAutoSend();
     }
 
     _syncActiveShift();
+  }
+
+  double _calculateMagnitude(double x, double y, double z) {
+    return sqrt(x * x + y * y + z * z);
+  }
+
+  void _updateMovementStatus(double x, double y, double z) {
+    final currentMagnitude = _calculateMagnitude(x, y, z);
+    final difference = (currentMagnitude - _lastMovementMagnitude).abs();
+
+    if (difference > 0.35) {
+      _lastMovementAt = DateTime.now();
+    }
+
+    _lastMovementMagnitude = currentMagnitude;
+  }
+
+  void _startSensorStreams() {
+    if (_accelerometerSubscription != null || _gyroscopeSubscription != null) {
+      return;
+    }
+
+    try {
+      _accelerometerSubscription = accelerometerEventStream().listen((event) {
+        if (!mounted) return;
+
+        _updateMovementStatus(event.x, event.y, event.z);
+
+        setState(() {
+          _accX = event.x;
+          _accY = event.y;
+          _accZ = event.z;
+        });
+
+        _checkRealtimeAlarms(event.x, event.y, event.z, _gyroX, _gyroY, _gyroZ);
+      }, onError: (_) => _setSensorWarning());
+
+      _gyroscopeSubscription = gyroscopeEventStream().listen((event) {
+        if (!mounted) return;
+
+        setState(() {
+          _gyroX = event.x;
+          _gyroY = event.y;
+          _gyroZ = event.z;
+        });
+
+        _checkRealtimeAlarms(_accX, _accY, _accZ, event.x, event.y, event.z);
+      }, onError: (_) => _setSensorWarning());
+    } catch (_) {
+      _setSensorWarning();
+    }
+  }
+
+  void _checkRealtimeAlarms(
+    double accX,
+    double accY,
+    double accZ,
+    double gyroX,
+    double gyroY,
+    double gyroZ,
+  ) {
+    final accMag = _calculateMagnitude(accX, accY, accZ);
+    final gyroMag = _calculateMagnitude(gyroX, gyroY, gyroZ);
+
+    final isHardImpact = accMag > 25;
+    final isFallRisk = accMag > 15 && gyroMag > 3.0;
+
+    if (isHardImpact || isFallRisk) {
+      final now = DateTime.now();
+      if (_lastImmediateTriggerTime == null ||
+          now.difference(_lastImmediateTriggerTime!).inSeconds >= 5) {
+        _lastImmediateTriggerTime = now;
+        _sendInstantSensorData(accX, accY, accZ, gyroX, gyroY, gyroZ);
+      }
+    }
+  }
+
+  Future<void> _sendInstantSensorData(
+    double accX,
+    double accY,
+    double accZ,
+    double gyroX,
+    double gyroY,
+    double gyroZ,
+  ) async {
+    try {
+      final workerId = await LocalStorage.getUserId();
+      final deviceId = await LocalStorage.getDeviceId();
+      final shiftId = await LocalStorage.getShiftId();
+
+      if (workerId == null || workerId.isEmpty || deviceId == null || deviceId.isEmpty) {
+        return;
+      }
+
+      final payload = SensorPayload(
+        workerId: workerId,
+        deviceId: deviceId,
+        shiftId: shiftId,
+        timestamp: DateTime.now(),
+        accelerometer: SensorVector(x: accX, y: accY, z: accZ),
+        gyroscope: SensorVector(x: gyroX, y: gyroY, z: gyroZ),
+        batteryLevel: _batteryLevel,
+        networkStatus: _networkStatus,
+        location: _buildLocation(),
+        inactivity: _isInactive,
+      );
+
+      await _sensorService.sendSensorData(payload);
+    } catch (_) {
+      // Silent error
+    }
+  }
+
+  void _setSensorWarning() {
+    if (_sensorWarningShown || !mounted) return;
+
+    setState(() {
+      _sensorWarningShown = true;
+      _message = 'Sensör okunamadı. Varsayılan normal değerler kullanılacak.';
+    });
+  }
+
+  void _startAutoSend() {
+    _autoSendTimer?.cancel();
+
+    _autoSendTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      _sendSensorData();
+    });
+  }
+
+  Future<void> _sendSensorData() async {
+    try {
+      final payload = await _buildPayload();
+      if (payload == null) return;
+
+      await _sensorService.sendSensorData(payload);
+    } catch (_) {
+      // Silent error for periodic background sending
+    }
+  }
+
+  Future<SensorPayload?> _buildPayload() async {
+    final workerId = await LocalStorage.getUserId();
+    final deviceId = await LocalStorage.getDeviceId();
+    final shiftId = await LocalStorage.getShiftId();
+
+    if (workerId == null || workerId.isEmpty || deviceId == null || deviceId.isEmpty) {
+      return null;
+    }
+
+    await _refreshDeviceStatus();
+    await _refreshLocation();
+
+    return SensorPayload(
+      workerId: workerId,
+      deviceId: deviceId,
+      shiftId: shiftId,
+      timestamp: DateTime.now(),
+      accelerometer: SensorVector(x: _accX, y: _accY, z: _accZ),
+      gyroscope: SensorVector(x: _gyroX, y: _gyroY, z: _gyroZ),
+      batteryLevel: _batteryLevel,
+      networkStatus: _networkStatus,
+      location: _buildLocation(),
+      inactivity: _isInactive,
+    );
+  }
+
+  SensorLocation? _buildLocation() {
+    if (_latitude == null || _longitude == null) return null;
+
+    return SensorLocation(
+      latitude: _latitude!,
+      longitude: _longitude!,
+      accuracy: _locationAccuracy,
+    );
+  }
+
+  Future<void> _refreshDeviceStatus() async {
+    try {
+      final batteryLevel = await _battery.batteryLevel;
+      final connectivity = await Connectivity().checkConnectivity();
+      final isOffline = connectivity.contains(ConnectivityResult.none);
+
+      if (!mounted) return;
+
+      setState(() {
+        _batteryLevel = batteryLevel;
+        _networkStatus = isOffline ? 'offline' : 'online';
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _batteryLevel = 80;
+        _networkStatus = 'online';
+      });
+    }
+  }
+
+  Future<void> _refreshLocation() async {
+    if (_isLocationLoading) return;
+
+    if (mounted) {
+      setState(() {
+        _isLocationLoading = true;
+        _locationStatus = 'Konum alınıyor...';
+      });
+    }
+
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        if (!mounted) return;
+        setState(() {
+          _locationStatus = 'Konum servisi kapalı';
+          _isLocationLoading = false;
+        });
+        return;
+      }
+
+      var permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        if (!mounted) return;
+        setState(() {
+          _locationStatus = 'Konum izni verilmedi';
+          _isLocationLoading = false;
+        });
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        if (!mounted) return;
+        setState(() {
+          _locationStatus = 'Konum izni kalıcı olarak reddedildi';
+          _isLocationLoading = false;
+        });
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _latitude = position.latitude;
+        _longitude = position.longitude;
+        _locationAccuracy = position.accuracy;
+        _locationStatus = 'Konum alındı';
+        _isLocationLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _locationStatus = 'Konum alınamadı';
+        _isLocationLoading = false;
+      });
+    }
   }
 
   Future<void> _syncActiveShift() async {
@@ -106,6 +424,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
           });
           _showMessage('Cihaz ID otomatik senkronize edildi.');
         }
+        _startSensorStreams();
+        _startAutoSend();
       } else {
         _showMessage('Cihaz ID otomatik çekilemedi.');
       }
@@ -125,13 +445,14 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       deviceId = _deviceController.text.trim();
     }
     if (deviceId.isEmpty) {
-      _showMessage('Lütfen önce Device ID girin.');
+      _showMessage('Cihaz bilgisi alınamadı.');
       return null;
     }
     return deviceId;
   }
 
   void _showMessage(String message) {
+    if (!mounted) return;
     setState(() => _message = message);
     ScaffoldMessenger.of(
       context,
@@ -188,6 +509,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   }
 
   Future<void> _logout() async {
+    _autoSendTimer?.cancel();
+    _accelerometerSubscription?.cancel();
+    _gyroscopeSubscription?.cancel();
+
     setState(() => _isBusy = true);
     try {
       final deviceId = await LocalStorage.getDeviceId();
@@ -249,54 +574,88 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
               title: 'Vardiya Durumu',
               value: hasActiveShift ? 'Aktif' : 'Başlatılmadı',
               subtitle: hasActiveShift
-                  ? 'Shift ID: $_shiftId'
-                  : 'Sensör verisi shiftId olmadan da gönderilebilir.',
+                  ? 'Aktif vardiya devam ediyor.'
+                  : 'Sensör verisi vardiya başlatılmadan da otomatik gönderilir.',
               icon: Icons.schedule,
               color: hasActiveShift
                   ? const Color(0xFF15803D)
                   : const Color(0xFFB45309),
             ),
+            
+            // Konum Haritası
             Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Cihaz Bilgisi (Device ID)',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
+              clipBehavior: Clip.antiAlias,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.map_outlined, color: Color(0xFF0F766E)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Mevcut Konum',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const Spacer(),
+                        if (_latitude != null && _longitude != null)
+                          Text(
+                            '${_latitude!.toStringAsFixed(5)}, ${_longitude!.toStringAsFixed(5)}',
+                            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Cihaz ID\'niz sistem tarafından otomatik olarak çekilmektedir.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _deviceController,
-                      readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Cihaz ID',
-                        border: OutlineInputBorder(),
-                        filled: true,
-                        fillColor: Color(0xFFF1F5F9),
-                        prefixIcon: Icon(Icons.phone_android),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    PrimaryButton(
-                      label: 'Cihaz ID Güncelle / Senkronize Et',
-                      icon: Icons.sync,
-                      isLoading: _isBusy,
-                      onPressed: _fetchDeviceAutomatically,
-                    ),
-                  ],
-                ),
+                  ),
+                  SizedBox(
+                    height: 180,
+                    child: _latitude != null && _longitude != null
+                        ? FlutterMap(
+                            options: MapOptions(
+                              initialCenter: LatLng(_latitude!, _longitude!),
+                              initialZoom: 15.0,
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName: 'com.example.safeworker_mobile',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: LatLng(_latitude!, _longitude!),
+                                    width: 40,
+                                    height: 40,
+                                    child: const Icon(
+                                      Icons.location_on,
+                                      color: Color(0xFFDC2626),
+                                      size: 36,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          )
+                        : const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(color: Color(0xFF0F766E)),
+                                SizedBox(height: 8),
+                                Text(
+                                  'GPS konumu alınıyor...',
+                                  style: TextStyle(color: Color(0xFF64748B)),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+                ],
               ),
             ),
+            const SizedBox(height: 12),
+
             if (_message != null)
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -332,12 +691,6 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             ),
             const SizedBox(height: 16),
             _NavigationTile(
-              title: 'Sensör Takibi',
-              subtitle: 'Gerçek sensör değerlerini göster ve gönder',
-              icon: Icons.sensors,
-              onTap: () => _open(const SensorTrackingScreen()),
-            ),
-            _NavigationTile(
               title: 'Demo / Simülasyon',
               subtitle: 'Normal, darbe, düşme, pil ve bağlantı senaryoları',
               icon: Icons.science_outlined,
@@ -352,7 +705,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             ),
             _NavigationTile(
               title: 'QR Bölge Girişi',
-              subtitle: 'Demo QR kod ile tehlikeli bölge girişi kaydet',
+              subtitle: 'Kamera ile tehlikeli bölge QR kodu tara',
               icon: Icons.qr_code_2,
               onTap: () => _open(const ZoneScanScreen()),
             ),

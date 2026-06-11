@@ -20,6 +20,8 @@ dependencies:
   sensors_plus: ^6.1.2
   shared_preferences: ^2.3.3
   mobile_scanner: ^5.2.2
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
 
 dev_dependencies:
   flutter_test:
