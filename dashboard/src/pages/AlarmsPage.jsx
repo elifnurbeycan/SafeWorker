@@ -117,11 +117,12 @@ const AlarmsPage = () => {
   };
 
   // Page-level socket: only for UI updates (alarm list refresh + critical banner)
+  // NOTE: Use a named handler so cleanup doesn't wipe the global audio listener
   useEffect(() => {
     fetchAlarms();
     const socket = connectSocket();
 
-    socket.on('alarm:new', (alarm) => {
+    const handleAlarmNew = (alarm) => {
       setNotice('Yeni alarm bildirimi alındı.');
       fetchAlarms(true);
 
@@ -130,10 +131,12 @@ const AlarmsPage = () => {
       }
 
       window.setTimeout(() => setNotice(''), 3000);
-    });
+    };
+
+    socket.on('alarm:new', handleAlarmNew);
 
     return () => {
-      socket.off('alarm:new');
+      socket.off('alarm:new', handleAlarmNew); // Remove ONLY this handler
       if (criticalNoticeTimerRef.current) {
         window.clearTimeout(criticalNoticeTimerRef.current);
       }
