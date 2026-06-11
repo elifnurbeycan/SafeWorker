@@ -50,6 +50,7 @@ class SensorPayload {
     required this.networkStatus,
     this.location,
     required this.inactivity,
+    this.postFallInactivity = false,
   });
 
   final String workerId;
@@ -62,6 +63,7 @@ class SensorPayload {
   final String networkStatus;
   final SensorLocation? location;
   final bool inactivity;
+  final bool postFallInactivity;
 
   Map<String, dynamic> toJson() {
     return {
@@ -75,6 +77,7 @@ class SensorPayload {
       'networkStatus': networkStatus,
       if (location != null) 'location': location!.toJson(),
       'inactivity': inactivity,
+      'postFallInactivity': postFallInactivity,
     };
   }
 }

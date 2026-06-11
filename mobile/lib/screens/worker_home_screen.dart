@@ -63,6 +63,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   double _lastMovementMagnitude = 0;
   DateTime _lastMovementAt = DateTime.now();
   DateTime? _lastImmediateTriggerTime;
+  DateTime? _lastCriticalEventAt; // düşme/darbe algılandığı an
 
   int _batteryLevel = 80;
   String _networkStatus = 'online';
@@ -77,8 +78,22 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   bool get _isInactive {
     final secondsWithoutMovement =
         DateTime.now().difference(_lastMovementAt).inSeconds;
-
     return secondsWithoutMovement >= 15;
+  }
+
+  // Düşme/darbe sonrası 30 sn hareketsizlik kontrolü
+  bool get _isPostFallInactive {
+    final criticalAt = _lastCriticalEventAt;
+    if (criticalAt == null) return false;
+
+    // Olayın üzerinden 3 dakikadan fazla geçmişse artık sayma
+    if (DateTime.now().difference(criticalAt).inMinutes >= 3) return false;
+
+    // Düşmeden itibaren 30 saniye boyunca hareket yok mu?
+    final secsSinceFall = DateTime.now().difference(criticalAt).inSeconds;
+    final secsSinceMove = DateTime.now().difference(_lastMovementAt).inSeconds;
+
+    return secsSinceFall >= 30 && secsSinceMove >= 30;
   }
 
   @override
@@ -186,6 +201,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       if (_lastImmediateTriggerTime == null ||
           now.difference(_lastImmediateTriggerTime!).inSeconds >= 5) {
         _lastImmediateTriggerTime = now;
+        _lastCriticalEventAt = now; // düşme/darbe zamanını kaydet
         _sendInstantSensorData(accX, accY, accZ, gyroX, gyroY, gyroZ);
       }
     }
@@ -219,6 +235,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
         networkStatus: _networkStatus,
         location: _buildLocation(),
         inactivity: _isInactive,
+        postFallInactivity: _isPostFallInactive,
       );
 
       await _sensorService.sendSensorData(payload);
@@ -278,6 +295,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       networkStatus: _networkStatus,
       location: _buildLocation(),
       inactivity: _isInactive,
+      postFallInactivity: _isPostFallInactive,
     );
   }
 

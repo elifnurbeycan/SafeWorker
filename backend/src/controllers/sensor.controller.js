@@ -139,6 +139,10 @@ const validateSensorBody = (body) => {
     throw createError(400, 'inactivity must be a boolean');
   }
 
+  if (body.postFallInactivity !== undefined && typeof body.postFallInactivity !== 'boolean') {
+    throw createError(400, 'postFallInactivity must be a boolean');
+  }
+
   validateOptionalLocation(body.location);
 };
 
@@ -155,6 +159,7 @@ const createSensorData = asyncHandler(async (req, res) => {
     batteryLevel,
     networkStatus,
     inactivity,
+    postFallInactivity,
     location
   } = req.body;
 
@@ -194,6 +199,7 @@ const createSensorData = asyncHandler(async (req, res) => {
     batteryLevel,
     networkStatus,
     inactivity,
+    postFallInactivity: postFallInactivity === true,
     hasRecentCriticalEvent: !!recentCriticalAlarm
   });
 
