@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '../api/api';
 import { connectSocket } from '../socket/socket';
 import AlarmTable from '../components/AlarmTable.jsx';
+import { useAlarmAudio } from '../auth/AlarmAudioContext.jsx';
 
 const CRITICAL_ALARM_TYPES = [
   'sos',
@@ -12,6 +13,7 @@ const CRITICAL_ALARM_TYPES = [
   'fall_risk',
   'hard_impact',
   'inactivity',
+  'post_fall_inactivity',
   'danger_zone_entry'
 ];
 
@@ -25,69 +27,9 @@ const FILTERS = [
 
 const isCriticalAlarm = (alarm) => {
   if (!alarm) return false;
-
   const type = alarm.type?.toString().toLowerCase();
-  const riskLevel = alarm.riskLevel?.toString().toLowerCase();
   const riskScore = Number(alarm.riskScore || 0);
-
-  return (
-    riskLevel === 'danger' ||
-    riskScore >= 61 ||
-    CRITICAL_ALARM_TYPES.includes(type)
-  );
-};
-
-const createAlarmSound = () => {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-  if (!AudioContextClass) return null;
-
-  const audioContext = new AudioContextClass();
-
-  const playTone = (frequency, startTime, duration) => {
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(frequency, startTime);
-
-    gainNode.gain.setValueAtTime(0.0001, startTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.45, startTime + 0.04);
-    gainNode.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-
-    oscillator.start(startTime);
-    oscillator.stop(startTime + duration + 0.02);
-  };
-
-  return {
-    async playCriticalAlarm() {
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-
-      const now = audioContext.currentTime;
-
-      playTone(880, now, 0.22);
-      playTone(660, now + 0.28, 0.22);
-      playTone(880, now + 0.56, 0.22);
-      playTone(660, now + 0.84, 0.22);
-    },
-    async playInactivityAlarm() {
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-
-      const now = audioContext.currentTime;
-
-      playTone(440, now, 0.45);
-      playTone(330, now + 0.55, 0.45);
-      playTone(440, now + 1.10, 0.45);
-      playTone(330, now + 1.65, 0.45);
-    }
-  };
+  return riskScore >= 61 || CRITICAL_ALARM_TYPES.includes(type);
 };
 
 const AlarmsPage = () => {
@@ -97,11 +39,12 @@ const AlarmsPage = () => {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [criticalNotice, setCriticalNotice] = useState('');
-  const [audioEnabled, setAudioEnabled] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
 
-  const alarmSoundRef = useRef(null);
   const criticalNoticeTimerRef = useRef(null);
+
+  // Global audio state — persists across page navigation
+  const { audioEnabled, enableAudio, disableAudio } = useAlarmAudio();
 
   const fetchAlarms = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -143,54 +86,9 @@ const AlarmsPage = () => {
     ).length
   };
 
-  const enableAudioAlarm = async () => {
-    try {
-      if (!alarmSoundRef.current) {
-        alarmSoundRef.current = createAlarmSound();
-      }
-
-      if (!alarmSoundRef.current) {
-        setError('Bu tarayıcı sesli alarm özelliğini desteklemiyor.');
-        return;
-      }
-
-      await alarmSoundRef.current.playCriticalAlarm();
-      setAudioEnabled(true);
-      setNotice('Sesli alarm aktifleştirildi.');
-      window.setTimeout(() => setNotice(''), 3000);
-    } catch (_) {
-      setError(
-        'Sesli alarm aktifleştirilemedi. Tarayıcı izinleri veya ses ayarlarını kontrol edin.'
-      );
-    }
-  };
-
-  const playCriticalSound = async () => {
-    if (!audioEnabled || !alarmSoundRef.current) return;
-
-    try {
-      await alarmSoundRef.current.playCriticalAlarm();
-    } catch (_) {
-      setNotice('Kritik alarm geldi ancak tarayıcı sesi engelledi.');
-      window.setTimeout(() => setNotice(''), 3000);
-    }
-  };
-
-  const playInactivitySound = async () => {
-    if (!audioEnabled || !alarmSoundRef.current) return;
-
-    try {
-      await alarmSoundRef.current.playInactivityAlarm();
-    } catch (_) {
-      setNotice('Kritik alarm geldi ancak tarayıcı sesi engelledi.');
-      window.setTimeout(() => setNotice(''), 3000);
-    }
-  };
-
   const showCriticalWarning = (alarm) => {
     const alarmType = alarm?.type || 'kritik alarm';
     const alarmMessage = alarm?.message || 'Kritik alarm bildirimi alındı.';
-
     setCriticalNotice(`${alarmType.toUpperCase()} - ${alarmMessage}`);
 
     if (criticalNoticeTimerRef.current) {
@@ -202,6 +100,23 @@ const AlarmsPage = () => {
     }, 10000);
   };
 
+  const handleEnableAudio = async () => {
+    const ok = await enableAudio();
+    if (ok) {
+      setNotice('Sesli alarm aktifleştirildi. Sayfa değişse de ses devam eder.');
+      window.setTimeout(() => setNotice(''), 4000);
+    } else {
+      setError('Sesli alarm aktifleştirilemedi. Tarayıcı izinleri veya ses ayarlarını kontrol edin.');
+    }
+  };
+
+  const handleDisableAudio = () => {
+    disableAudio();
+    setNotice('Sesli alarm kapatıldı.');
+    window.setTimeout(() => setNotice(''), 3000);
+  };
+
+  // Page-level socket: only for UI updates (alarm list refresh + critical banner)
   useEffect(() => {
     fetchAlarms();
     const socket = connectSocket();
@@ -212,12 +127,6 @@ const AlarmsPage = () => {
 
       if (isCriticalAlarm(alarm)) {
         showCriticalWarning(alarm);
-        
-        if (alarm?.type?.toString().toLowerCase() === 'inactivity') {
-          playInactivitySound();
-        } else {
-          playCriticalSound();
-        }
       }
 
       window.setTimeout(() => setNotice(''), 3000);
@@ -225,12 +134,11 @@ const AlarmsPage = () => {
 
     return () => {
       socket.off('alarm:new');
-
       if (criticalNoticeTimerRef.current) {
         window.clearTimeout(criticalNoticeTimerRef.current);
       }
     };
-  }, [audioEnabled, fetchAlarms]);
+  }, [fetchAlarms]);
 
   const handleResolve = async (alarmId) => {
     setResolvingId(alarmId);
@@ -260,9 +168,9 @@ const AlarmsPage = () => {
           <button
             type="button"
             className={audioEnabled ? 'secondary-button success' : 'secondary-button'}
-            onClick={audioEnabled ? () => setAudioEnabled(false) : enableAudioAlarm}
+            onClick={audioEnabled ? handleDisableAudio : handleEnableAudio}
           >
-            {audioEnabled ? 'Sesli Alarmı Kapat' : 'Sesli Alarmı Aktifleştir'}
+            {audioEnabled ? '🔊 Sesli Alarm Açık — Kapat' : '🔇 Sesli Alarmı Aktifleştir'}
           </button>
           {notice && <span className="notice">{notice}</span>}
         </div>

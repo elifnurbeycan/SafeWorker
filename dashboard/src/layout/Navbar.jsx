@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext.jsx';
+import { useAlarmAudio } from '../auth/AlarmAudioContext.jsx';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -14,10 +15,19 @@ const navItems = [
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { audioEnabled, enableAudio, disableAudio } = useAlarmAudio();
 
   const handleLogout = () => {
     logout();
     navigate('/login', { replace: true });
+  };
+
+  const handleAudioToggle = async () => {
+    if (audioEnabled) {
+      disableAudio();
+    } else {
+      await enableAudio();
+    }
   };
 
   return (
@@ -43,6 +53,20 @@ const Navbar = () => {
       </nav>
 
       <div className="sidebar-footer">
+        {/* Global alarm sound toggle — visible on every page */}
+        <button
+          type="button"
+          className={`alarm-audio-toggle ${audioEnabled ? 'active' : ''}`}
+          onClick={handleAudioToggle}
+          title={audioEnabled ? 'Sesli alarmı kapat' : 'Sesli alarmı aç'}
+        >
+          <span className="alarm-audio-icon">{audioEnabled ? '🔊' : '🔇'}</span>
+          <span className="alarm-audio-label">
+            {audioEnabled ? 'Ses Açık' : 'Ses Kapalı'}
+          </span>
+          <span className={`alarm-audio-dot ${audioEnabled ? 'on' : 'off'}`} />
+        </button>
+
         <div className="user-box">
           <strong>{user?.name || 'Admin'}</strong>
           <span>{user?.email}</span>
