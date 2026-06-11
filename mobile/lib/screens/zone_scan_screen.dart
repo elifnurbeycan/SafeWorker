@@ -18,7 +18,8 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
   final _qrController = TextEditingController(text: 'ZONE-CHEM-001');
   final _zoneService = ZoneService();
   bool _isSending = false;
-  String _lastResult = 'Demo QR kodu seçin veya manuel QR kod girin.';
+  bool _isCameraActive = false;
+  String _lastResult = 'Kamerayı açarak QR kod tarayın veya manuel kod girin.';
 
   @override
   void dispose() {
@@ -63,7 +64,7 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
       if (alarm != null) {
         _showResult('Bölge girişi kaydedildi. Alarm: ${alarm['message']}');
       } else {
-        _showResult('Bölge girişi kaydedildi.');
+        _showResult('Bölge girişi kaydedildi. Bölge: $qrCode');
       }
     } on ApiException catch (error) {
       _showResult(error.message);
@@ -84,18 +85,6 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _startCameraScan() async {
-    final scannedCode = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (context) => const QRScannerPage(),
-      ),
-    );
-
-    if (scannedCode != null && scannedCode.isNotEmpty) {
-      _sendQr(scannedCode);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,40 +93,62 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-             StatusCard(
-              title: 'Sonuç',
+            StatusCard(
+              title: 'Durum / Sonuç',
               value: _lastResult,
               icon: Icons.qr_code_2,
             ),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+            if (_isCameraActive)
+              Card(
+                clipBehavior: Clip.antiAlias,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Kamera ile Tara',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                    AppBar(
+                      title: const Text('Kamera Aktif - QR Kod Tarayın'),
+                      automaticallyImplyLeading: false,
+                      backgroundColor: const Color(0xFF0F766E),
+                      foregroundColor: Colors.white,
+                      actions: [
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() => _isCameraActive = false);
+                          },
+                        ),
+                      ],
+                    ),
+                    SizedBox(
+                      height: 280,
+                      child: MobileScanner(
+                        onDetect: (capture) {
+                          final barcodes = capture.barcodes;
+                          for (final barcode in barcodes) {
+                            if (barcode.rawValue != null) {
+                              final code = barcode.rawValue!;
+                              setState(() {
+                                _qrController.text = code;
+                                _isCameraActive = false;
+                              });
+                              _sendQr();
+                              break;
+                            }
+                          }
+                        },
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Bölge girişini kaydetmek için panolardaki QR kodu kameranızla tarayın.',
-                      style: TextStyle(color: Color(0xFF64748B)),
-                    ),
-                    const SizedBox(height: 16),
-                    PrimaryButton(
-                      label: 'Kamera ile QR Kod Tara',
-                      icon: Icons.qr_code_scanner,
-                      isLoading: _isSending,
-                      onPressed: _startCameraScan,
                     ),
                   ],
                 ),
+              )
+            else
+              PrimaryButton(
+                label: 'Kamera ile QR Kod Tara',
+                icon: Icons.camera_alt,
+                backgroundColor: const Color(0xFF0F766E),
+                onPressed: () {
+                  setState(() => _isCameraActive = true);
+                },
               ),
-            ),
+            const SizedBox(height: 12),
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -170,6 +181,14 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
                 ),
               ),
             ),
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'Demo / Simülasyon QR Kodları',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
             PrimaryButton(
               label: 'Kimyasal Depo QR Gönder',
               icon: Icons.science_outlined,
@@ -195,75 +214,6 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class QRScannerPage extends StatefulWidget {
-  const QRScannerPage({super.key});
-
-  @override
-  State<QRScannerPage> createState() => _QRScannerPageState();
-}
-
-class _QRScannerPageState extends State<QRScannerPage> {
-  final MobileScannerController _controller = MobileScannerController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('QR Kod Tara'),
-        actions: [
-          IconButton(
-            icon: ValueListenableBuilder(
-              valueListenable: _controller.torchState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case TorchState.off:
-                    return const Icon(Icons.flash_off);
-                  case TorchState.on:
-                    return const Icon(Icons.flash_on);
-                }
-              },
-            ),
-            onPressed: () => _controller.toggleTorch(),
-          ),
-          IconButton(
-            icon: ValueListenableBuilder(
-              valueListenable: _controller.cameraFacingState,
-              builder: (context, state, child) {
-                switch (state) {
-                  case CameraFacing.front:
-                    return const Icon(Icons.camera_front);
-                  case CameraFacing.back:
-                    return const Icon(Icons.camera_rear);
-                }
-              },
-            ),
-            onPressed: () => _controller.switchCamera(),
-          ),
-        ],
-      ),
-      body: MobileScanner(
-        controller: _controller,
-        onDetect: (capture) {
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            final rawValue = barcode.rawValue;
-            if (rawValue != null && rawValue.isNotEmpty) {
-              Navigator.of(context).pop(rawValue);
-              break;
-            }
-          }
-        },
       ),
     );
   }

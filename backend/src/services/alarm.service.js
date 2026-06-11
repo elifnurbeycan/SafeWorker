@@ -11,14 +11,18 @@ const populateAlarm = (query) => {
 const createAlarm = async (alarmPayload, options = {}) => {
   const shouldEmit = options.emit !== false;
 
-  const existingActiveAlarm = await Alarm.findOne({
-    workerId: alarmPayload.workerId,
-    type: alarmPayload.type,
-    status: 'active'
-  });
+  const duplicateCheckedTypes = ['INACTIVITY', 'LOW_BATTERY', 'CONNECTION_LOST'];
 
-  if (existingActiveAlarm) {
-    return populateAlarm(Alarm.findById(existingActiveAlarm._id));
+  if (duplicateCheckedTypes.includes(alarmPayload.type)) {
+    const existingActiveAlarm = await Alarm.findOne({
+      workerId: alarmPayload.workerId,
+      type: alarmPayload.type,
+      status: 'active'
+    });
+
+    if (existingActiveAlarm) {
+      return populateAlarm(Alarm.findById(existingActiveAlarm._id));
+    }
   }
 
   const alarm = await Alarm.create({

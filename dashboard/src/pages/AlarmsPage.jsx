@@ -165,16 +165,22 @@ const AlarmsPage = () => {
     }
   };
 
-  const playCriticalSound = async (alarm) => {
+  const playCriticalSound = async () => {
     if (!audioEnabled || !alarmSoundRef.current) return;
 
     try {
-      const type = alarm?.type?.toString().toLowerCase();
-      if (type === 'inactivity') {
-        await alarmSoundRef.current.playInactivityAlarm();
-      } else {
-        await alarmSoundRef.current.playCriticalAlarm();
-      }
+      await alarmSoundRef.current.playCriticalAlarm();
+    } catch (_) {
+      setNotice('Kritik alarm geldi ancak tarayıcı sesi engelledi.');
+      window.setTimeout(() => setNotice(''), 3000);
+    }
+  };
+
+  const playInactivitySound = async () => {
+    if (!audioEnabled || !alarmSoundRef.current) return;
+
+    try {
+      await alarmSoundRef.current.playInactivityAlarm();
     } catch (_) {
       setNotice('Kritik alarm geldi ancak tarayıcı sesi engelledi.');
       window.setTimeout(() => setNotice(''), 3000);
@@ -206,7 +212,12 @@ const AlarmsPage = () => {
 
       if (isCriticalAlarm(alarm)) {
         showCriticalWarning(alarm);
-        playCriticalSound(alarm);
+        
+        if (alarm?.type?.toString().toLowerCase() === 'inactivity') {
+          playInactivitySound();
+        } else {
+          playCriticalSound();
+        }
       }
 
       window.setTimeout(() => setNotice(''), 3000);
