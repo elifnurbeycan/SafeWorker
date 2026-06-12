@@ -163,4 +163,14 @@ Projenin akademik detaylarına, yazılım gereksinim analizi ve mimari kararlar�
 * 📘 **[Grup 5 - SafeWorker Proje Raporu.pdf](<Grup5_SafeWorker_NodeJSileWebTabanlıProgramlama.pdf>)**
 
 ---
-*Bu proje, Node.js ile Web Tabanlı Programlama dersi kapsamında **Grup 5** tarafından bir MVP (Minimum Viable Product) prototipi olarak geliştirilmiştir.*
+
+## 👥 Geliştirici Ekibi (Grup 5)
+
+* **Elif Nur Beycan**
+* **Kübra Kaya**
+* **Fatma Nur Yazıcı**
+* **Nermin Baycan**
+
+---
+*Bu proje, Node.js ile Web Tabanlı Programlama dersi kapsamında bir MVP (Minimum Viable Product) prototipi olarak geliştirilmiştir.*
+
