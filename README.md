@@ -64,14 +64,23 @@ Projenin analiz, tasarım ve akış diyagramlarına aşağıdaki bağlantılarda
 ## 📸 Proje Ekran Görüntüleri
 
 ### 💻 Yönetim Paneli (Admin Dashboard)
-![Admin Dashboard Genel Görünüm](<Proje ekran görüntüleri/Proje ekran görüntüleri/Admin Dashboard Genel Görünüm Ekranı.jpg>)
 
-*Gelişmiş grafikler, canlı harita takibi ve anlık aktif çalışan listesi.*
+| Dashboard Genel Görünüm | Harita Konum Takibi |
+| :---: | :---: |
+| ![Genel Görünüm](<Proje ekran görüntüleri/Proje ekran görüntüleri/Admin Dashboard Genel Görünüm Ekranı.jpg>) | ![Canlı Harita](<Proje ekran görüntüleri/Proje ekran görüntüleri/Harita.jpg>) |
+| *Grafikler, İstatistikler ve Aktif Çalışanlar* | *Çalışanların Anlık Harita Konumları* |
+
+| Çalışan Takibi & Son Durum | Alarm Listesi ve Filtreleme |
+| :---: | :---: |
+| ![Çalışan Takibi](<Proje ekran görüntüleri/Proje ekran görüntüleri/Çalışan Takibi Ekranı.jpg>) | ![Alarm Filtreleme](<Proje ekran görüntüleri/Proje ekran görüntüleri/Alarm Listesi ve Filtreleme Ekranı.jpg>) |
+| *Aktif Çalışan Listesi ve Detaylar* | *Sesli Alarm Bildirimleri ve CSV Dışa Aktarma* |
 
 ### 📱 Mobil Uygulama (Worker Mobile App)
-| Mobil Giriş Ekranı | Vardiya Başlatma | Tehlikeli Bölge Girişi |
-| :---: | :---: | :---: |
-| ![Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Mobil Giriş Ekranı.jpg>) | ![Vardiya](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Vardiya Başlatma Ekranı.jpg>) | ![QR Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/QR Tehlikeli Bölge Girişi Ekranı.jpg>) |
+
+| Mobil Giriş Ekranı | Vardiya Başlatma | Tehlikeli Bölge Girişi | Acil SOS Gönderimi |
+| :---: | :---: | :---: | :---: |
+| ![Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Mobil Giriş Ekranı.jpg>) | ![Vardiya](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Vardiya Başlatma Ekranı.jpg>) | ![QR Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/QR Tehlikeli Bölge Girişi Ekranı.jpg>) | ![SOS Bildirimi](<Proje ekran görüntüleri/Proje ekran görüntüleri/SOS Bildirimi Ekranı.jpg>) |
+| *Güvenli Çalışan Girişi* | *Konum Destekli Vardiya Başlatma* | *Bölge Risk Durumu Sorgulama* | *Tek Tuşla Acil SOS Bildirimi* |
 
 ---
 
