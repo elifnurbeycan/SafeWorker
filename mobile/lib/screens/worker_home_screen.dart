@@ -39,6 +39,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   String? _shiftId;
   String? _message;
   bool _isBusy = false;
+  final MapController _mapController = MapController();
 
   List<LocalDangerZone> _dangerZones = [];
   bool _dangerZonesInitialized = false;
@@ -502,6 +503,12 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       });
 
       _checkGeofences(position.latitude, position.longitude);
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _latitude != null && _longitude != null) {
+          _mapController.move(LatLng(_latitude!, _longitude!), 16.5);
+        }
+      });
     } catch (_) {
       if (!mounted) return;
 
@@ -758,6 +765,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     height: 240,
                     child: _latitude != null && _longitude != null
                         ? FlutterMap(
+                            mapController: _mapController,
                             options: MapOptions(
                               initialCenter: LatLng(_latitude!, _longitude!),
                               initialZoom: 16.5,
@@ -886,6 +894,11 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                       _initializeDangerZones(40.9901, 29.0289);
                                     });
                                     _checkGeofences(40.9901, 29.0289);
+                                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                                      if (mounted && _latitude != null && _longitude != null) {
+                                        _mapController.move(LatLng(_latitude!, _longitude!), 16.5);
+                                      }
+                                    });
                                   },
                                 ),
                               ],
@@ -1023,6 +1036,11 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                   zone.center.latitude,
                                   zone.center.longitude,
                                 );
+                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  if (mounted && _latitude != null && _longitude != null) {
+                                    _mapController.move(LatLng(_latitude!, _longitude!), 16.5);
+                                  }
+                                });
                               },
                               label: Text(
                                 zone.name,
