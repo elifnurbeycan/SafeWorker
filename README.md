@@ -694,7 +694,7 @@ GitHub Desktop kullanılıyorsa:
 ## Notlar
 
 * Bu proje akademik dönem projesi kapsamında geliştirilmiş bir MVP’dir.
-* Sistem üretim ortamı için değil, prototip ve demo amacıyla hazırlanmıştır.
+* Sistem üretim ortamı için değil, prototip ve demo amacıyla hazırlanmıştır, ancak arayüzdeki demo metinler kaldırılmıştır.
 * Kamera, mikrofon gibi hassas veri kaynakları kullanılmamıştır.
 * GPS verisi yalnızca iş güvenliği senaryosunda konum destekli izleme amacıyla eklenmiştir.
-* Gerçek test sonuçları, demo testleri tamamlandıktan sonra rapora eklenecektir.
+* UI temizlikleri: “Demo / Simülasyon” ifadesi “Simülasyon” olarak değiştirildi, “Acil durum butonu yalnızca demo amaçlıdır.” metni kaldırıldı, alarm bildirimleri kısaltıldı ve shift alt başlığı sadeleştirildi.
