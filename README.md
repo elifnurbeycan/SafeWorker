@@ -5,9 +5,19 @@ SafeWorker; saha çalışanlarının mobil cihazlarını birer IoT uç noktası 
 
 ---
 
+## 🔒 Yerel Ağ (LAN) Mimarisi ve Veri Güvenliği
+
+SafeWorker, endüstriyel iş güvenliği ve veri gizliliği politikaları doğrultusunda **Yerel Ağ (LAN)** mimarisinde çalışacak şekilde tasarlanmıştır:
+* **Veri Güvenliği:** Çalışanların anlık konum ve sensör verileri gibi hassas telemetry verilerinin şirket dışı genel bulut sunucularına çıkışı engellenerek yerel ağ sınırları içerisinde kalması sağlanmıştır.
+* **Cihazlar Arası Erişim:** Web Dashboard, Backend sunucu ve Flutter Mobil uygulamasının birbiriyle haberleşebilmesi için **aynı yerel ağa (Wi-Fi)** bağlı olması gerekmektedir.
+* **Mobil IP Yapılandırması:** Mobil uygulamanın backend API'sine erişebilmesi için `mobile/lib/config/api_config.dart` dosyasındaki `backendHost` değeri, backend sunucusunun yerel IPv4 adresi (örneğin `10.73.174.27`) ile güncellenmelidir.
+* **Erişim Adresleri:** Bu yerel güvenlik mimarisinden ötürü `localhost` üzerinden verilen bağlantılar (örn. `http://localhost:3000`) sadece sunucu makinede çalışacaktır. Diğer yerel cihazlardan erişmek için `localhost` yerine sunucunun yerel IP adresi (örn. `http://10.73.174.27:3000`) kullanılmalıdır.
+
+---
+
 ## 📌 Proje Mimarisi ve Tasarım Şemaları
 
-Sistemin modüler yapısı, istemci ve sunucu arasındaki veri akışını optimize edecek şekilde tasarlanmıştır.
+Sistemin modüler yapısı, istemci ve sunucu arasındaki veri akışını yerel ağ üzerinde optimize edecek şekilde tasarlanmıştır.
 
 ### 🏛️ Genel Sistem Mimarisi
 ```
@@ -40,15 +50,16 @@ Projenin analiz, tasarım ve akış diyagramlarına aşağıdaki bağlantılarda
 
 ## 🚀 Temel Özellikler
 
-### 📱 Mobil Uygulama (Flutter)
+### 📱 Mobil Uygulama (Flutter - Çalışan Ekranı)
+* **Canlı Harita Görünümü:** Çalışanın kendi konumunu ve sahadaki aktif durumunu harita üzerinden takip edebilmesi.
 * **Canlı Sensör Akışı:** İvmeölçer ve jiroskop verilerinin arka planda işlenmesi.
 * **Akıllı Risk Analizi:** Sert darbe (`HARD_IMPACT`) ve düşme şüphesi (`FALL_RISK`) tespiti.
 * **Geofencing & QR Kod:** Sahadaki riskli bölgelere (`DANGER_ZONE`) QR okutarak giriş ve otomatik takip sistemi.
 * **Manuel SOS Tetikleme:** Çalışanın tek dokunuşla acil durum alarmı oluşturması.
 * **Güç & Bağlantı Takibi:** Düşük pil seviyesi ve internet bağlantı kaybı durumlarının takibi.
 
-### 💻 Yönetici Paneli (React & Vite)
-* **Canlı Çalışan Haritası:** Harita üzerinden çalışanların son bilinen konumlarının anlık izlenmesi.
+### 💻 Yönetici Paneli (React & Vite - Dashboard)
+* **Canlı Çalışan Takip Listesi:** Yöneticilerin, sahada vardiyası açık olan çalışanları anlık durumlarıyla izleyebilmesi.
 * **Gerçek Zamanlı Alarm Paneli:** Socket.io ile sayfa yenilenmeden düşen SOS ve İSG alarmları.
 * **Sesli Alarm Desteği:** Kritik ve SOS alarmlarında yöneticileri uyaran sesli alarm sistemi.
 * **Gelişmiş Filtreleme:** Aktif, çözülen, kritik seviye ve SOS alarmlarına göre anlık süzme.
@@ -65,22 +76,27 @@ Projenin analiz, tasarım ve akış diyagramlarına aşağıdaki bağlantılarda
 
 ### 💻 Yönetim Paneli (Admin Dashboard)
 
-| Dashboard Genel Görünüm | Harita Konum Takibi |
+| Dashboard Genel Görünüm | Çalışan Takibi & Son Durum |
 | :---: | :---: |
-| ![Genel Görünüm](<Proje ekran görüntüleri/Proje ekran görüntüleri/Admin Dashboard Genel Görünüm Ekranı.jpg>) | ![Canlı Harita](<Proje ekran görüntüleri/Proje ekran görüntüleri/Harita.jpg>) |
-| *Grafikler, İstatistikler ve Aktif Çalışanlar* | *Çalışanların Anlık Harita Konumları* |
+| ![Genel Görünüm](<Proje ekran görüntüleri/Proje ekran görüntüleri/Admin Dashboard Genel Görünüm Ekranı.jpg>) | ![Çalışan Takibi](<Proje ekran görüntüleri/Proje ekran görüntüleri/Çalışan Takibi Ekranı.jpg>) |
+| *Grafikler, İstatistikler ve Aktif Çalışanlar* | *Aktif Çalışan Listesi ve Detaylar* |
 
-| Çalışan Takibi & Son Durum | Alarm Listesi ve Filtreleme |
-| :---: | :---: |
-| ![Çalışan Takibi](<Proje ekran görüntüleri/Proje ekran görüntüleri/Çalışan Takibi Ekranı.jpg>) | ![Alarm Filtreleme](<Proje ekran görüntüleri/Proje ekran görüntüleri/Alarm Listesi ve Filtreleme Ekranı.jpg>) |
-| *Aktif Çalışan Listesi ve Detaylar* | *Sesli Alarm Bildirimleri ve CSV Dışa Aktarma* |
+| Alarm Listesi ve Filtreleme |
+| :---: |
+| ![Alarm Filtreleme](<Proje ekran görüntüleri/Proje ekran görüntüleri/Alarm Listesi ve Filtreleme Ekranı.jpg>) |
+| *Sesli Alarm Bildirimleri ve CSV Dışa Aktarma* |
 
 ### 📱 Mobil Uygulama (Worker Mobile App)
 
-| Mobil Giriş Ekranı | Vardiya Başlatma | Tehlikeli Bölge Girişi | Acil SOS Gönderimi |
-| :---: | :---: | :---: | :---: |
-| ![Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Mobil Giriş Ekranı.jpg>) | ![Vardiya](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Vardiya Başlatma Ekranı.jpg>) | ![QR Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/QR Tehlikeli Bölge Girişi Ekranı.jpg>) | ![SOS Bildirimi](<Proje ekran görüntüleri/Proje ekran görüntüleri/SOS Bildirimi Ekranı.jpg>) |
-| *Güvenli Çalışan Girişi* | *Konum Destekli Vardiya Başlatma* | *Bölge Risk Durumu Sorgulama* | *Tek Tuşla Acil SOS Bildirimi* |
+| Mobil Giriş Ekranı | Vardiya Başlatma | Harita Konum Görünümü |
+| :---: | :---: | :---: |
+| ![Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Mobil Giriş Ekranı.jpg>) | ![Vardiya](<Proje ekran görüntüleri/Proje ekran görüntüleri/Worker Vardiya Başlatma Ekranı.jpg>) | ![Harita Görünümü](<Proje ekran görüntüleri/Proje ekran görüntüleri/Harita.jpg>) |
+| *Güvenli Çalışan Girişi* | *Konum Destekli Vardiya Başlatma* | *Çalışan Harita Konum Takibi* |
+
+| Tehlikeli Bölge Girişi | Acil SOS Gönderimi |
+| :---: | :---: |
+| ![QR Giriş](<Proje ekran görüntüleri/Proje ekran görüntüleri/QR Tehlikeli Bölge Girişi Ekranı.jpg>) | ![SOS Bildirimi](<Proje ekran görüntüleri/Proje ekran görüntüleri/SOS Bildirimi Ekranı.jpg>) |
+| *Bölge Risk Durumu Sorgulama* | *Tek Tuşla Acil SOS Bildirimi* |
 
 ---
 
@@ -98,8 +114,8 @@ docker compose up --build -d
 # Veritabanı başlangıç verilerini (seed) yükle
 docker compose exec backend npm run seed
 ```
-* **Dashboard:** http://localhost:5173
-* **Backend API / Swagger:** http://localhost:3000/api-docs
+* **Dashboard:** http://localhost:5173 (Sunucuda) veya http://<sunucu-ip>:5173
+* **Backend API / Swagger:** http://localhost:3000/api-docs veya http://<sunucu-ip>:3000/api-docs
 
 ---
 
