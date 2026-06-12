@@ -102,6 +102,68 @@ const RiskChartPage = () => {
     [selectedWorkerId, workers]
   );
 
+  const handlePrepareRiskReport = () => {
+    if (!selectedWorker || !chartData.length) {
+      setNotice('Rapor için önce risk verisi olan bir çalışan seçin.');
+      window.setTimeout(() => setNotice(''), 3000);
+      return;
+    }
+
+    const scores = chartData
+      .map((record) => Number(record.riskScore || 0))
+      .filter((score) => Number.isFinite(score));
+    const averageRisk = scores.length
+      ? Math.round(scores.reduce((total, score) => total + score, 0) / scores.length)
+      : 0;
+    const maxRisk = scores.length ? Math.max(...scores) : 0;
+    const dangerCount = chartData.filter((record) => record.riskLevel === 'danger').length;
+    const warningCount = chartData.filter((record) => record.riskLevel === 'warning').length;
+
+    const rows = [
+      ['SafeWorker Risk Analizi Raporu'],
+      ['Çalışan', selectedWorker.workerName || '-'],
+      ['Cihaz', selectedWorker.deviceName || '-'],
+      ['Hazırlanma Tarihi', new Date().toLocaleString('tr-TR')],
+      ['Kayıt Sayısı', chartData.length],
+      ['Ortalama Risk', averageRisk],
+      ['En Yüksek Risk', maxRisk],
+      ['Danger Kayıt', dangerCount],
+      ['Warning Kayıt', warningCount],
+      [],
+      ['Zaman', 'Risk Puanı', 'Risk Seviyesi'],
+      ...chartData.map((record) => [
+        new Date(record.timestamp).toLocaleString('tr-TR'),
+        record.riskScore ?? '',
+        record.riskLevel ?? ''
+      ])
+    ];
+
+    const csv = rows
+      .map((row) =>
+        row
+          .map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`)
+          .join(',')
+      )
+      .join('\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeWorkerName = (selectedWorker.workerName || 'calisan')
+      .toLowerCase()
+      .replaceAll(' ', '-')
+      .replace(/[^a-z0-9ğüşöçıİĞÜŞÖÇ-]/gi, '');
+
+    link.href = url;
+    link.download = `risk-analizi-${safeWorkerName}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    setNotice('Risk analizi raporu hazırlandı.');
+    window.setTimeout(() => setNotice(''), 3000);
+  };
+
   return (
     <section className="page-section">
       <div className="page-header">
@@ -109,7 +171,17 @@ const RiskChartPage = () => {
           <h2>Risk Grafiği</h2>
           <p>Son 50 sensör kaydına göre risk puanı değişimi</p>
         </div>
-        {notice && <span className="notice">{notice}</span>}
+        <div className="page-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={handlePrepareRiskReport}
+            disabled={!selectedWorker || !chartData.length}
+          >
+            Risk Analizi Raporu Hazırla
+          </button>
+          {notice && <span className="notice">{notice}</span>}
+        </div>
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}

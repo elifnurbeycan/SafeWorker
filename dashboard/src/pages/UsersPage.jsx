@@ -34,6 +34,22 @@ const UsersPage = () => {
     fetchUsers();
   }, []);
 
+  const handleRiskReport = async () => {
+    try {
+      const response = await api.get('/risk-report', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'risk_report_' + new Date().toISOString().slice(0,10) + '.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setSuccess('Rapor indirildi.');
+    } catch (err) {
+      setError('Rapor oluşturulamadı.');
+    }
+  };
+
   const handleCreateUser = async (e) => {
     e.preventDefault();
     setError('');
@@ -79,6 +95,13 @@ const UsersPage = () => {
         <div>
           <h2>Kullanıcı Yönetimi</h2>
           <p>Yönetici ve çalışan hesaplarını yönetin</p>
+          <button
+            className="button"
+            onClick={handleRiskReport}
+            style={{ marginRight: '8px', background: '#4f46e5', color: '#fff' }}
+          >
+            Risk Analizi Raporu Oluştur
+          </button>
         </div>
         <button
           className="button"

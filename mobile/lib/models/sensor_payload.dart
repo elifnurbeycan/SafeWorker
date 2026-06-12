@@ -1,20 +1,12 @@
 class SensorVector {
-  const SensorVector({
-    required this.x,
-    required this.y,
-    required this.z,
-  });
+  const SensorVector({required this.x, required this.y, required this.z});
 
   final double x;
   final double y;
   final double z;
 
   Map<String, dynamic> toJson() {
-    return {
-      'x': x,
-      'y': y,
-      'z': z,
-    };
+    return {'x': x, 'y': y, 'z': z};
   }
 }
 

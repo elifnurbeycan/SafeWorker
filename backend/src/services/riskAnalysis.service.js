@@ -118,22 +118,21 @@ const calculateRisk = (payload) => {
     });
   }
 
-  // Düşme/darbe sonrası 30 saniye hareketsizlik → risk seviyesi maksimuma çıkar
   if (payload.postFallInactivity === true) {
-    riskScore += 50;
+    riskScore = Math.max(riskScore + 65, 100);
 
     riskFactors.push(
       createRiskFactor(
         'Düşme sonrası 30 sn hareketsizlik',
-        50,
-        'Düşme veya sert darbe algılandıktan sonra 30 saniye boyunca hiç hareket algılanmadı. Çalışan yardıma ihtiyaç duyuyor olabilir!'
+        100,
+        'Düşme veya sert darbe algılandıktan sonra 30 saniye boyunca hareket algılanmadı. Çalışan yardıma ihtiyaç duyuyor olabilir!'
       )
     );
 
     alarmCandidates.push({
       type: ALARM_TYPES.POST_FALL_INACTIVITY,
-      message: 'KRİTİK: Düşme sonrası 30 saniye hareketsizlik algılandı! Çalışan yardıma ihtiyaç duyuyor olabilir.',
-      riskScore: 90
+      message: 'KRİTİK: Düşme/darbe sonrası 30 saniye hareketsizlik algılandı. Çalışan yardıma ihtiyaç duyuyor olabilir.',
+      riskScore: 100
     });
   }
 

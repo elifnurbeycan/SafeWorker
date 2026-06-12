@@ -19,7 +19,7 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
   final _zoneService = ZoneService();
   bool _isSending = false;
   bool _isCameraActive = false;
-  String _lastResult = 'Kamerayı açarak QR kod tarayın veya manuel kod girin.';
+  String _lastResult = 'Kamerayı açarak QR kod tarayın.';
 
   @override
   void dispose() {
@@ -150,13 +150,7 @@ class _ZoneScanScreenState extends State<ZoneScanScreen> {
               ),
             const SizedBox(height: 12),
             const Divider(),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Demo / Simülasyon QR Kodları',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ),
+
             PrimaryButton(
               label: 'Kimyasal Depo QR Gönder',
               icon: Icons.science_outlined,

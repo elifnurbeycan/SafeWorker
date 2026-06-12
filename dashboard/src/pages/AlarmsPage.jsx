@@ -103,7 +103,7 @@ const AlarmsPage = () => {
   const handleEnableAudio = async () => {
     const ok = await enableAudio();
     if (ok) {
-      setNotice('Sesli alarm aktifleştirildi. Sayfa değişse de ses devam eder.');
+      setNotice('Sesli alarm etkinleştirildi.');
       window.setTimeout(() => setNotice(''), 4000);
     } else {
       setError('Sesli alarm aktifleştirilemedi. Tarayıcı izinleri veya ses ayarlarını kontrol edin.');

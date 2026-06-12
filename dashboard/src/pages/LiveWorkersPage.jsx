@@ -18,7 +18,7 @@ const LiveWorkersPage = () => {
       const response = await api.get('/dashboard/live-workers');
       setWorkers(response.data.data || []);
     } catch (requestError) {
-      setError(requestError.response?.data?.message || 'Canlı çalışan verileri alınamadı.');
+      setError(requestError.response?.data?.message || 'Çalışan verileri alınamadı.');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -34,15 +34,19 @@ const LiveWorkersPage = () => {
       window.setTimeout(() => setNotice(''), 3000);
     };
 
-    socket.on('sensor:new', () => refresh('Yeni sensör verisi alındı.'));
-    socket.on('worker:status', () => refresh('Çalışan durumu güncellendi.'));
-    socket.on('alarm:new', () => refresh('Yeni alarm bildirimi alındı.'));
+    const handleSensorNew = () => refresh('Yeni sensör verisi alındı.');
+    const handleWorkerStatus = () => refresh('Çalışan durumu güncellendi.');
+    const handleAlarmNew = () => refresh('Yeni alarm bildirimi alındı.');
+
+    socket.on('sensor:new', handleSensorNew);
+    socket.on('worker:status', handleWorkerStatus);
+    socket.on('alarm:new', handleAlarmNew);
 
     return () => {
       window.clearInterval(intervalId);
-      socket.off('sensor:new');
-      socket.off('worker:status');
-      socket.off('alarm:new');
+      socket.off('sensor:new', handleSensorNew);
+      socket.off('worker:status', handleWorkerStatus);
+      socket.off('alarm:new', handleAlarmNew);
     };
   }, [fetchWorkers]);
 
@@ -50,7 +54,7 @@ const LiveWorkersPage = () => {
     <section className="page-section">
       <div className="page-header">
         <div>
-          <h2>Canlı Çalışanlar</h2>
+          <h2>Çalışanları İzle</h2>
           <p>Son sensör verileri ve risk durumları</p>
         </div>
         {notice && <span className="notice">{notice}</span>}

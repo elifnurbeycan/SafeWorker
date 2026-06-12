@@ -26,6 +26,7 @@ class _DemoSimulationScreenState extends State<DemoSimulationScreen> {
     required int batteryLevel,
     required String networkStatus,
     required bool inactivity,
+    bool postFallInactivity = false,
   }) async {
     setState(() => _isSending = true);
 
@@ -54,6 +55,7 @@ class _DemoSimulationScreenState extends State<DemoSimulationScreen> {
         batteryLevel: batteryLevel,
         networkStatus: networkStatus,
         inactivity: inactivity,
+        postFallInactivity: postFallInactivity,
       );
 
       final response = await _sensorService.sendSensorData(payload);
@@ -168,6 +170,22 @@ class _DemoSimulationScreenState extends State<DemoSimulationScreen> {
                 batteryLevel: 70,
                 networkStatus: 'online',
                 inactivity: true,
+              ),
+            ),
+            const SizedBox(height: 12),
+            PrimaryButton(
+              label: 'Dusme Sonrasi Kritik Hareketsizlik',
+              icon: Icons.warning_amber_rounded,
+              backgroundColor: const Color(0xFFDC2626),
+              isLoading: _isSending,
+              onPressed: () => _sendDemo(
+                title: 'Dusme sonrasi kritik hareketsizlik',
+                accelerometer: const SensorVector(x: 0.01, y: 0.01, z: 0.01),
+                gyroscope: const SensorVector(x: 0.01, y: 0.01, z: 0.01),
+                batteryLevel: 70,
+                networkStatus: 'online',
+                inactivity: true,
+                postFallInactivity: true,
               ),
             ),
             const SizedBox(height: 12),

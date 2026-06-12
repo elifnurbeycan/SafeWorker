@@ -14,7 +14,7 @@ class EmergencyScreen extends StatefulWidget {
 class _EmergencyScreenState extends State<EmergencyScreen> {
   final _emergencyService = EmergencyService();
   bool _isSending = false;
-  String _message = 'Acil durum butonu yalnızca demo amaçlıdır.';
+  String _message = '';
 
   Future<void> _sendEmergency() async {
     setState(() => _isSending = true);

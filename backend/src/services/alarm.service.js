@@ -11,7 +11,12 @@ const populateAlarm = (query) => {
 const createAlarm = async (alarmPayload, options = {}) => {
   const shouldEmit = options.emit !== false;
 
-  const duplicateCheckedTypes = ['INACTIVITY', 'LOW_BATTERY', 'CONNECTION_LOST'];
+  const duplicateCheckedTypes = [
+    'INACTIVITY',
+    'POST_FALL_INACTIVITY',
+    'LOW_BATTERY',
+    'CONNECTION_LOST'
+  ];
 
   if (duplicateCheckedTypes.includes(alarmPayload.type)) {
     const existingActiveAlarm = await Alarm.findOne({

@@ -36,13 +36,16 @@ const DashboardPage = () => {
       window.setTimeout(() => setNotice(''), 3000);
     };
 
-    socket.on('alarm:new', () => refreshWithNotice('Yeni alarm bildirimi alındı.'));
-    socket.on('dashboard:summary', () => refreshWithNotice('Dashboard özeti yenilendi.'));
+    const handleAlarmNew = () => refreshWithNotice('Yeni alarm bildirimi alındı.');
+    const handleDashboardSummary = () => refreshWithNotice('Dashboard özeti yenilendi.');
+
+    socket.on('alarm:new', handleAlarmNew);
+    socket.on('dashboard:summary', handleDashboardSummary);
 
     return () => {
       window.clearInterval(intervalId);
-      socket.off('alarm:new');
-      socket.off('dashboard:summary');
+      socket.off('alarm:new', handleAlarmNew);
+      socket.off('dashboard:summary', handleDashboardSummary);
     };
   }, [fetchSummary]);
 

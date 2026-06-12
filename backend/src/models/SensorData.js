@@ -57,6 +57,10 @@ const sensorDataSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    postFallInactivity: {
+      type: Boolean,
+      default: false
+    },
     riskFactors: [
       {
         name: { type: String },

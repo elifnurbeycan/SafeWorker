@@ -5,7 +5,7 @@ import { useAlarmAudio } from '../auth/AlarmAudioContext.jsx';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard' },
-  { to: '/live-workers', label: 'Canlı Çalışanlar' },
+  { to: '/live-workers', label: 'Çalışanları İzle' },
   { to: '/alarms', label: 'Alarmlar' },
   { to: '/risk-chart', label: 'Risk Grafiği' },
   { to: '/zones', label: 'Bölgeler' },

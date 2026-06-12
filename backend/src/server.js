@@ -30,9 +30,7 @@ io.on('connection', (socket) => {
 
 connectDB()
   .then(() => {
-    server.listen(PORT, () => {
-      console.log(`SafeWorker backend running on port ${PORT}`);
-    });
+    server.listen(PORT, '0.0.0.0', () => console.log(`SafeWorker backend running on http://${'0.0.0.0'}:${PORT}`));
   })
   .catch((error) => {
     console.error('Server startup failed:', error.message);

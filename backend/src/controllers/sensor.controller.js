@@ -220,6 +220,7 @@ const createSensorData = asyncHandler(async (req, res) => {
     networkStatus,
     location: normalizedLocation,
     inactivity: inactivity === true,
+    postFallInactivity: postFallInactivity === true,
     riskScore: riskResult.riskScore,
     riskLevel: riskResult.riskLevel,
     riskFactors: riskResult.riskFactors

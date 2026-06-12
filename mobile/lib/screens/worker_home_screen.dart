@@ -76,8 +76,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
   bool _sensorWarningShown = false;
 
   bool get _isInactive {
-    final secondsWithoutMovement =
-        DateTime.now().difference(_lastMovementAt).inSeconds;
+    final secondsWithoutMovement = DateTime.now()
+        .difference(_lastMovementAt)
+        .inSeconds;
     return secondsWithoutMovement >= 15;
   }
 
@@ -220,7 +221,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
       final deviceId = await LocalStorage.getDeviceId();
       final shiftId = await LocalStorage.getShiftId();
 
-      if (workerId == null || workerId.isEmpty || deviceId == null || deviceId.isEmpty) {
+      if (workerId == null ||
+          workerId.isEmpty ||
+          deviceId == null ||
+          deviceId.isEmpty) {
         return;
       }
 
@@ -277,7 +281,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
     final deviceId = await LocalStorage.getDeviceId();
     final shiftId = await LocalStorage.getShiftId();
 
-    if (workerId == null || workerId.isEmpty || deviceId == null || deviceId.isEmpty) {
+    if (workerId == null ||
+        workerId.isEmpty ||
+        deviceId == null ||
+        deviceId.isEmpty) {
       return null;
     }
 
@@ -390,7 +397,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
 
       if (enteredZoneQr != null) {
         final zone = _dangerZones.firstWhere((z) => z.qrCode == enteredZoneQr);
-        _showMessage('GPS: ${zone.name} bölgesine girildi! API kaydı yapılıyor...');
+        _showMessage(
+          'GPS: ${zone.name} bölgesine girildi! API kaydı yapılıyor...',
+        );
 
         try {
           final workerId = await LocalStorage.getUserId();
@@ -403,7 +412,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             final alarm = data['alarm'] as Map<String, dynamic>?;
 
             if (alarm != null) {
-              _showMessage('${zone.name} girişi kaydedildi! Alarm: ${alarm['message']}');
+              _showMessage(
+                '${zone.name} girişi kaydedildi! Alarm: ${alarm['message']}',
+              );
             } else {
               _showMessage('${zone.name} girişi kaydedildi.');
             }
@@ -699,19 +710,19 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             StatusCard(
               title: 'Vardiya Durumu',
               value: hasActiveShift ? 'Aktif' : 'Başlatılmadı',
-              subtitle: hasActiveShift
-                  ? 'Aktif vardiya devam ediyor.'
-                  : 'Sensör verisi vardiya başlatılmadan da otomatik gönderilir.',
+              subtitle: '',
               icon: Icons.schedule,
               color: hasActiveShift
                   ? const Color(0xFF15803D)
                   : const Color(0xFFB45309),
             ),
-            
+
             // Konum Haritası
             Card(
               clipBehavior: Clip.antiAlias,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -719,17 +730,26 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     padding: const EdgeInsets.all(12.0),
                     child: Row(
                       children: [
-                        const Icon(Icons.map_outlined, color: Color(0xFF0F766E)),
+                        const Icon(
+                          Icons.map_outlined,
+                          color: Color(0xFF0F766E),
+                        ),
                         const SizedBox(width: 8),
                         const Text(
                           'Mevcut Konum',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         const Spacer(),
                         if (_latitude != null && _longitude != null)
                           Text(
                             '${_latitude!.toStringAsFixed(5)}, ${_longitude!.toStringAsFixed(5)}',
-                            style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                            style: const TextStyle(
+                              fontFamily: 'monospace',
+                              fontSize: 12,
+                            ),
                           ),
                       ],
                     ),
@@ -744,8 +764,10 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                             ),
                             children: [
                               TileLayer(
-                                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.example.safeworker_mobile',
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName:
+                                    'com.example.safeworker_mobile',
                               ),
                               CircleLayer(
                                 circles: _dangerZones.map((zone) {
@@ -789,14 +811,22 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 5,
+                                              vertical: 2,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: Colors.white,
-                                              borderRadius: BorderRadius.circular(4),
-                                              border: Border.all(color: zone.color, width: 1.5),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              border: Border.all(
+                                                color: zone.color,
+                                                width: 1.5,
+                                              ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withValues(alpha: 0.15),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.15),
                                                   blurRadius: 4,
                                                   offset: const Offset(0, 2),
                                                 ),
@@ -829,7 +859,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const CircularProgressIndicator(color: Color(0xFF0F766E)),
+                                const CircularProgressIndicator(
+                                  color: Color(0xFF0F766E),
+                                ),
                                 const SizedBox(height: 8),
                                 const Text(
                                   'GPS konumu alınıyor...',
@@ -838,7 +870,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                 const SizedBox(height: 12),
                                 TextButton.icon(
                                   icon: const Icon(Icons.map_outlined),
-                                  label: const Text('Demo Konumu Kullan (Kadıköy)'),
+                                  label: const Text(
+                                    'Demo Konumu Kullan (Kadıköy)',
+                                  ),
                                   style: TextButton.styleFrom(
                                     foregroundColor: const Color(0xFF0F766E),
                                   ),
@@ -847,7 +881,8 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                       _isMockGpsActive = true;
                                       _latitude = 40.9901;
                                       _longitude = 29.0289;
-                                      _locationStatus = 'Simüle Konum (Kadıköy)';
+                                      _locationStatus =
+                                          'Simüle Konum (Kadıköy)';
                                       _initializeDangerZones(40.9901, 29.0289);
                                     });
                                     _checkGeofences(40.9901, 29.0289);
@@ -865,7 +900,9 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             // GPS Simülasyonu (Test Paneli)
             if (_dangerZones.isNotEmpty)
               Card(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(12),
                   child: Column(
@@ -873,18 +910,30 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.gps_fixed, color: Color(0xFF0F766E), size: 20),
+                          const Icon(
+                            Icons.gps_fixed,
+                            color: Color(0xFF0F766E),
+                            size: 20,
+                          ),
                           const SizedBox(width: 8),
                           const Text(
                             'GPS Simülasyonu (Test Paneli)',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                           const Spacer(),
                           if (_isMockGpsActive)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                color: const Color(
+                                  0xFFF59E0B,
+                                ).withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: const Text(
@@ -905,11 +954,20 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                         children: [
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: _isMockGpsActive ? const Color(0xFF475569) : Colors.grey[200],
-                              foregroundColor: _isMockGpsActive ? Colors.white : Colors.grey[600],
+                              backgroundColor: _isMockGpsActive
+                                  ? const Color(0xFF475569)
+                                  : Colors.grey[200],
+                              foregroundColor: _isMockGpsActive
+                                  ? Colors.white
+                                  : Colors.grey[600],
                               elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                             ),
                             icon: const Icon(Icons.gps_not_fixed, size: 14),
                             onPressed: _isMockGpsActive
@@ -920,25 +978,38 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                     _refreshLocation();
                                   }
                                 : null,
-                            label: const Text('Gerçek GPS', style: TextStyle(fontSize: 11)),
+                            label: const Text(
+                              'Gerçek GPS',
+                              style: TextStyle(fontSize: 11),
+                            ),
                           ),
                           ..._dangerZones.map((zone) {
-                            final isCurrent = _currentActiveZoneQr == zone.qrCode;
+                            final isCurrent =
+                                _currentActiveZoneQr == zone.qrCode;
                             return ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: isCurrent ? zone.color : zone.color.withValues(alpha: 0.1),
-                                foregroundColor: isCurrent ? Colors.white : zone.color,
+                                backgroundColor: isCurrent
+                                    ? zone.color
+                                    : zone.color.withValues(alpha: 0.1),
+                                foregroundColor: isCurrent
+                                    ? Colors.white
+                                    : zone.color,
                                 side: BorderSide(color: zone.color, width: 1.2),
                                 elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 8,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               icon: Icon(
                                 zone.qrCode == 'ZONE-CHEM-001'
                                     ? Icons.science_outlined
                                     : zone.qrCode == 'ZONE-FORK-001'
-                                        ? Icons.warehouse_outlined
-                                        : Icons.construction_outlined,
+                                    ? Icons.warehouse_outlined
+                                    : Icons.construction_outlined,
                                 size: 14,
                               ),
                               onPressed: () {
@@ -948,9 +1019,15 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
                                   _longitude = zone.center.longitude;
                                   _locationStatus = 'Simüle: ${zone.name}';
                                 });
-                                _checkGeofences(zone.center.latitude, zone.center.longitude);
+                                _checkGeofences(
+                                  zone.center.latitude,
+                                  zone.center.longitude,
+                                );
                               },
-                              label: Text(zone.name, style: const TextStyle(fontSize: 11)),
+                              label: Text(
+                                zone.name,
+                                style: const TextStyle(fontSize: 11),
+                              ),
                             );
                           }),
                         ],
@@ -996,7 +1073,7 @@ class _WorkerHomeScreenState extends State<WorkerHomeScreen> {
             ),
             const SizedBox(height: 16),
             _NavigationTile(
-              title: 'Demo / Simülasyon',
+              title: 'Simulasyon',
               subtitle: 'Normal, darbe, düşme, pil ve bağlantı senaryoları',
               icon: Icons.science_outlined,
               onTap: () => _open(const DemoSimulationScreen()),
