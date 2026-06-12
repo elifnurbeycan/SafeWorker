@@ -28,7 +28,14 @@ const createAlarm = async (alarmPayload, options = {}) => {
     if (existingActiveAlarm) {
       const updatedAlarm = await Alarm.findByIdAndUpdate(
         existingActiveAlarm._id,
-        { $set: { createdAt: new Date(), updatedAt: new Date() } },
+        {
+          $set: {
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            riskScore: alarmPayload.riskScore,
+            message: alarmPayload.message
+          }
+        },
         { new: true }
       );
       const populatedAlarm = await populateAlarm(Alarm.findById(updatedAlarm._id));
