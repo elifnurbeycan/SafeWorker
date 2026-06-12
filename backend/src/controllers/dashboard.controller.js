@@ -88,9 +88,9 @@ const getLiveWorkers = asyncHandler(async (req, res) => {
         workerId: worker._id,
         deviceName: device ? device.deviceName : null,
         deviceId: device ? device._id : null,
-        lastSeen: device ? device.lastSeen : null,
-        batteryLevel: device ? device.batteryLevel : null,
-        networkStatus: device ? device.networkStatus : null,
+        lastSeen: latestSensor ? latestSensor.timestamp : (device ? device.lastSeen : null),
+        batteryLevel: latestSensor ? latestSensor.batteryLevel : (device ? device.batteryLevel : null),
+        networkStatus: latestSensor ? latestSensor.networkStatus : (device ? device.networkStatus : null),
         latestRiskScore: latestSensor ? latestSensor.riskScore : null,
         latestRiskLevel: latestSensor ? latestSensor.riskLevel : null,
         latestAlarm
