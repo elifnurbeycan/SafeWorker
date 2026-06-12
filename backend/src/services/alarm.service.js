@@ -26,23 +26,7 @@ const createAlarm = async (alarmPayload, options = {}) => {
     });
 
     if (existingActiveAlarm) {
-      const updatedAlarm = await Alarm.findByIdAndUpdate(
-        existingActiveAlarm._id,
-        {
-          $set: {
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            riskScore: alarmPayload.riskScore,
-            message: alarmPayload.message
-          }
-        },
-        { new: true }
-      );
-      const populatedAlarm = await populateAlarm(Alarm.findById(updatedAlarm._id));
-      if (shouldEmit) {
-        emitEvent(options.eventName || 'alarm:new', populatedAlarm);
-      }
-      return populatedAlarm;
+      await Alarm.findByIdAndDelete(existingActiveAlarm._id);
     }
   }
 
