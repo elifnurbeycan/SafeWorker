@@ -682,6 +682,7 @@ git commit -m "commit mesajı"
 git push origin main
 ```
 
+
 GitHub Desktop kullanılıyorsa:
 
 1. Changes sekmesinde değişiklikler kontrol edilir.
